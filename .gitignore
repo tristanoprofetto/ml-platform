@@ -1,0 +1,41 @@
+# Virtual environment
+venv/
+env/
+*.pyc
+__pycache__/
+jokes/
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Compiled Python files
+*.pyc
+*.pyo
+__pycache__/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local development settings (if using Django or similar)
+settings_local.py
+
+# Ignore any .env files containing sensitive information
+.env
+
+# Ignore any compiled Python files
+*.pyc
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local mlflow files
+mlartifacts/
+mlruns/
