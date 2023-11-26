@@ -3,7 +3,7 @@ import json
 import pandas as pd
 
 
-def ingest_dataset(input_path: str, output_path: str = None):
+def ingest_dataset(input_path: str):
     """
     Ingest dataset from folder
     """

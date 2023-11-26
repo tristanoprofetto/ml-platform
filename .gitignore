@@ -4,6 +4,7 @@ env/
 *.pyc
 __pycache__/
 jokes/
+data/
 
 # Editor and IDE files
 .vscode/

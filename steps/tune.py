@@ -23,7 +23,7 @@ def run_experiment(model_params: dict = None):
     Returns:
         None
     """
-    mlflow.set_tracking_uri('http://10.0.0.117:8080')
+    mlflow.set_tracking_uri(os.environ.get('MLFLOW_TRACKING_URI'))
     mlflow.set_experiment('hi-jokes')
     df = pd.read_csv('./data/feedback.csv')
     df = df[~df['text'].isna()]
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         print('****************************')
         best_run = max(results, key=lambda x: x['accuracy'])
         #best_run = max(results, key=lambda x: x['accuracy'])
-        # mlflow.set_tracking_uri('http://10.0.0.117:8080')
+        # mlflow.set_tracking_uri('')
         # mlflow.set_experiment('hi-jokes')
         # mlflow.log_params(best_run['params'])
         # mlflow.sklearn.log_model(best_run['model'], "best-model")

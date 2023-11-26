@@ -26,7 +26,7 @@ def run_experiment(run_name: str,
     Returns:
         None
     """
-    mlflow.set_tracking_uri('http://10.0.0.117:8080')
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI"))
     mlflow.set_experiment('hi-jokes')
     # Split dataset
     x_train, x_test, y_train, y_test = train_test_split(
@@ -62,7 +62,7 @@ def run_experiment(run_name: str,
     # Generate current timestamp
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     # Start MLFlow run
-    with mlflow.start_run(run_name=f'{run_name}:{timestamp}', log_system_metrics=True) as run:
+    with mlflow.start_run(run_name=f'{run_name}:{timestamp}') as run:
         # Log hyperparameters
         mlflow.log_params(model_params)
         # Log data parameters
