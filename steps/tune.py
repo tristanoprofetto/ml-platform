@@ -12,13 +12,13 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-
+# Set path to parent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 from exceptions.runs_errors import ParallelRunsError, RunExperimentError
 from logger.get_logger import setup_logging
-
+# Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
 

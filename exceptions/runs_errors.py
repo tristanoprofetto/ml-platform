@@ -50,6 +50,16 @@ class GetArgsError(Exception):
     def __init__(self, message):
         self.message = message
 
+
+class GetExperimentError(Exception):
+    """Exception raised for errors in the get_experiment function.
+
+    Attributes:
+        message -- explanation of the error
+    """
+    def __init__(self, message):
+        self.message = message
+
         
 
 

@@ -3,7 +3,13 @@ import pandas as pd
 
 def preprocess_data(df):
     """
-    Preprocess data for model training
+    Preprocess data for model training.
+
+    Args:
+        df (pd.DataFrame): Dataframe with columns 'text' and 'label'
+
+    Returns:
+        df (pd.DataFrame): Preprocessed dataframe
     """
     # Drop rows with missing values
     df = df.dropna()

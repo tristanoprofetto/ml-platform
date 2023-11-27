@@ -13,13 +13,13 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-
+# Set path to parent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 from exceptions.runs_errors import RunExperimentError
 from logger.get_logger import setup_logging
-
+# Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,11 @@ def run_training(tracking_uri: str,
 
     Args:
         tracking_uri (str): URI of MLFlow tracking server
-        run_name (str): Name of run
         experiment_name (str): Name of experiment
+        run_name (str): Name of run
+        model_params (dict): Dictionary of model parameters
+        tokenizer_params (dict): Dictionary of tokenizer parameters
+        data_params (dict): Dictionary of data parameters
         df (pd.DataFrame): Dataframe containing text and label columns
     
     Returns:

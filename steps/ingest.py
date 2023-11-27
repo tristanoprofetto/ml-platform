@@ -5,7 +5,13 @@ import pandas as pd
 
 def ingest_dataset(input_path: str):
     """
-    Ingest dataset from folder
+    Ingest dataset input path and return dataframe
+
+    Args: 
+        input_path (str): Path to dataset folder
+    
+    Returns:
+        df (pd.DataFrame): Dataframe with columns 'text' and 'label'
     """
     # Initialize lists to store data
     texts = []
