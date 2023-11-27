@@ -1,8 +1,10 @@
 import os
+import sys
 import argparse
 import sklearn
 
 import mlflow
+
 
 #src_uri = f"runs:/{run.info.run_id}/sklearn-model"
 
@@ -31,4 +33,13 @@ def get_args():
 
 
 if __name__ == "__main__":
-    client = mlflow.tracking.MlflowClient()
+    import sys
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    sys.path.append(parent_dir)
+    mlflow.set_tracking_uri('http://10.0.0.117:8080')
+    #model = mlflow.sklearn.load_model(model_uri='runs:/dc13f7f6f4324295845f77c3865a544d/student-model')
+    #tokenizer = mlflow.sklearn.load_model(model_uri='runs:/dc13f7f6f4324295845f77c3865a544d/tokenizer')
+    model = mlflow.sklearn.load_model(model_uri='runs:/dc13f7f6f4324295845f77c3865a544d/student-model')
+    tokenizer = mlflow.sklearn.load_model(model_uri='runs:/dc13f7f6f4324295845f77c3865a544d/tokenizer')
+    print(model.predict(tokenizer.transform(['I hate this class'])))

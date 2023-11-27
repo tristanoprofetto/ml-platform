@@ -32,8 +32,11 @@ sentiment =[
     "negative",
 ]
 
-print(len(reflections) == len(sentiment))
 
-df = pd.read_csv('./data/feedback.csv')
+if __name__ == "__main__":
+    df = pd.read_csv('./data/feedback.csv')
+    print(len(df))
+    new_rows = pd.DataFrame({'text': reflections, 'label': sentiment})
+    df = pd.concat([df, new_rows], ignore_index=True)
+    df.to_csv('feedback.csv', index=False)
 
-print(df.groupby('label').count())

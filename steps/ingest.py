@@ -24,5 +24,12 @@ def ingest_dataset(input_path: str):
     # Create dataframe from lists
     df = pd.DataFrame({'text': texts, 'label': labels})
     # Return dataframe
-    #df.to_csv(output_path, index=False)
     return df
+
+if __name__ == "__main__":
+    import sys
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    sys.path.append(parent_dir)
+    df = ingest_dataset('./data')
+    df.to_csv('./data/feedback.csv', index=False)
