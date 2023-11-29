@@ -145,8 +145,9 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--tracking_uri', type=str, default='http://localhost:5000')
-    parser.add_argument('--experiment_name', type=str, default='student-experiment')
-    parser.add_argument('--run_name', type=str, default='student-run')
+    parser.add_argument('--experiment_name', type=str, default='test-experiment')
+    parser.add_argument('--run_name', type=str, default='test-run')
+    parser.add_argument('--input_data_path', type=str, default='./data/feedback.csv')
 
     args = parser.parse_args()
     
@@ -163,7 +164,7 @@ if __name__ == "__main__":
     args = get_args()
     # Load dataset
     logger.info('Loading dataset...')
-    df = pd.read_csv('./data/feedback.csv', names=['text', 'label'])
+    df = pd.read_csv(args.input_data_path)
     # Preprocess dataset
     logger.info('Preprocessing dataset...')
     df = preprocess_data(df)

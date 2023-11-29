@@ -15,10 +15,9 @@ This Machine Learning Platform is designed as a template for training, tuning, a
 
 ### Prerequisites
 Be sure to have installed the following on your machine.
+- Python 3.x
 - Docker
 - MLflow
-- Python 3.x
-- scikit-learn
 
 ### Run the MLflow Server
 Run the folllowing to command to start the mlflow tracking UI on your local machine:
@@ -31,7 +30,7 @@ ifconfig | grep inet
 ```
 
 ### ML Workloads
-We have defined three primary workfloads to be executed:
+There are three primary workloads we can execute:
 1. Parameter Tuning: running multiple mlflow runs in parallel and selecting the best result
 2. Model Training: running model training
 3. Deployment and Inference: serving the model to make predictions
@@ -40,7 +39,7 @@ We have defined three primary workfloads to be executed:
 1. Docker Containers (Recommended): run workloads as isolated snapshots of your code
 2. Command-line: run the scripts directly from the console
 
-### Getting Started - Running with Docker
+### 01 - Getting Started - Running with Docker
 1. **Clone the Repository**
    ```sh
    git clone https://github.com/tristanoprofetto/ml-platform
@@ -66,23 +65,48 @@ We have defined three primary workfloads to be executed:
    ```
    * End-to-End (coming soon)
 
-### Getting Started - Executing Scripts Locally
+### 02 - Getting Started - Executing Scripts Locally
 ##### Finding the best Model Parameters
 1. Run parameter tuning directly:
 ```sh
 python3 ./steps/tune.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$MLFLOW_EXPERIMENT_NAME --run_name=$MLFLOW_RUN_NAME
 ```
-
 2. Navigate to MLFlow Server Check and Compare MLFlow runs through the Tracking UI
 
 ##### Training the Model
-1. Access the training container's shell.
+1. Set model, tokenizer, and data parameters for running the training job in the conf.ini file.
 2. Run the training script.
    ```sh
    python ./steps/train.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$MLFLOW_EXPERIMENT_NAME --run_name=$MLFLOW_RUN_NAME
    ```
+3. Navigate to the MLFlow Tracking UI to visualize results
 
-# Code Structure
+##### Serving the Model
+1. Make sure to copy the run_id for the specific model you want to deploy
+2. Build the docker image by running:
+   ```sh
+   docker build -t $SERVE_IMAGE_TAG -f ./dockerfiles/serve/Dockerfile .
+   ```
+3. Run the container:
+   ```sh
+   docker run -p 8000:8000 -e TRACKING_URI=$MLFLOW_TRACKING_URI -e RUN_ID=$SERVE_RUN_ID $SERVE_IMAGE_TAG
+   ```
+4. Run the predict.py script to make inferences on the running container. Add your own inputs you want to test.
+
+## High-Level System Architecture (ideally)
+1. UI Layer: MLFlow tracking UI for visualizing and comparing experiments, registered models, runs, artifacts, metrics and more.
+2. Application Layer: for managing the orchestration of ML workloads and networking between services.
+3. Data Layer: manages data for running ML workloads
+4. Logging and Monitoring: ensures visiblity of health and performance across services
+5. Testing: ensures reliability and functionality of system components and their interactions
+
+## Additional Considerations
+1. Scalability: connecting to cloud platforms for handling larger datasets, and running more intensive workloads.
+2. Security: implement robust security measures, especially when handling sensitive datasets.
+3. CI/CD: automate the testing and deployment of services in a production environment.
+4. Documentation and Support: write more comprehensive documentation and potentially support channels.
+
+### Code Structure
 Here is a quick breakdown of the code structure
 * automation: automate the execution of ML workflows with bash scripts
 * data: sample dataset for running training and tuning
@@ -92,7 +116,4 @@ Here is a quick breakdown of the code structure
 * steps: the required modules that execute our machine learning workflows
 * tests: functional testing
 * app.py: model server file
-
-#### How to Contribute
-Working on it
 

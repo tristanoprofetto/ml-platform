@@ -6,7 +6,7 @@ import pandas as pd
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
-from steps.preprocess import preprocess_data
+from steps.ingest import ingest_dataset
 
 
 @pytest.fixture()
@@ -17,12 +17,9 @@ def mock_df():
     })
 
 
-def test_data_preprocessing(mock_df):
+def test_invalid_input_path():
     """
-    Ensure rows with missing values are correctly dropped.
+    Ensure error is raised when invalid input path is provided.
     """
-    df = preprocess_data(mock_df)
-    assert df['text'].str.islower().all()
-    assert df['label'].isin([-1, 0, 1]).all()
-    assert df.isna().sum().sum() == 0
-
+    with pytest.raises(FileNotFoundError):
+        ingest_dataset('./invalid_path')
