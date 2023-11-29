@@ -9,28 +9,20 @@ sys.path.append(parent_dir)
 from steps.preprocess import preprocess_data
 
 
-@pytest.fixture
-def df():
+@pytest.fixture()
+def mock_df():
     return pd.DataFrame({
-        'text': ['foo', 'bar', 'baz'],
-        'label': [1, 0, -1]
-    })
-
-@pytest.fixture
-def df_with_nan():
-    return pd.DataFrame({
-        'text': ['foo', 'bar', None, 'baz'],
-        'label': [1, 0, -1, None]
+        'text': ['FOO', 'BAR', 'BAZ', None, None, 'YOLO'],
+        'label': ["positive", "negative", None, "neutral", "neutral", "neutral"]
     })
 
 
-def test_drop_missing_vals(df_with_nan):
+def test_drop_missing_vals(mock_df):
     """
     Ensure rows with missing values are correctly dropped.
     """
-    preprocesed_df = preprocess_data(df_with_nan)
-    assert preprocesed_df.isna().sum().sum() == 0
+    df = preprocess_data(mock_df)
+    assert df['text'].str.islower().all()
+    assert df['label'].isin([-1, 0, 1]).all()
+    assert df.isna().sum().sum() == 0
 
-
-def test_lowercasing():
-    pass

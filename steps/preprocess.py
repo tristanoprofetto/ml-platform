@@ -11,8 +11,6 @@ def preprocess_data(df):
     Returns:
         df (pd.DataFrame): Preprocessed dataframe
     """
-    # Drop rows with missing values
-    df = df.dropna()
     # Lowercasing
     df['text'] = df['text'].str.lower()
     # Create label to category mapping
