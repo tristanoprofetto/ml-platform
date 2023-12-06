@@ -4,7 +4,7 @@
 This Machine Learning Platform is designed as a template for training, tuning, and serving machine learning models using Docker containers. For the focus is on experimentation and running workloads from your local machine. The project leverages the open-source [MLflow framework](https://mlflow.org/docs/latest/index.html) for managing the machine learning lifecycle, including experimentation, reproducibility, and deployment.
 
 ## Features
-- **Automation**: Leverages Bash scripts to streamline the definition of variables and execution of ML workflows
+- **Automation**: Leverages Bash scripts to streamline the definition of variables and execution of ML workflows, automatically select predefined scikit-learn models and text vectorizers.
 - **MLflow Integration**: Utilizes MLflow for managing the machine learning lifecycle, including experimentation, reproducibility, and deployment.
 - **Parameter Tuning at Scale**: MLflow runs are submitted as seperate tasks to the ProcessPoolExecutor. Since each task is run in a separate process, they can execute in parallel.
 - **Dockerized Components**: Separate Docker containers for model training, parameter tuning, and serving the model, ensuring modularity and scalability.
@@ -35,9 +35,35 @@ There are three primary workloads we can execute:
 2. Model Training: running model training
 3. Deployment and Inference: serving the model to make predictions
 
+When running training or tune jobs specifying one of the following names to select your model and tokenizer.
+
+Currently you can train the following scikit-learn models:
+| **Algorithm** | **Model Name at Runtime** |
+|:-----------:|:-----:|
+|Multinomial Naive Bayes|nb|
+|Support Vector Classifier|svc|
+|Random Forest Classifier|rf|
+|Logistic Regression|lr|
+
+You can also select one of the two following vectorizers as a tokenizer:
+| **Algorithm** | **Model Name at Runtime** |
+|:-----------:|:-----:|
+|Count Vectorizer|count|
+|TF-IDF Vectorizer|tfidf|
+
+
 ### How to Run ML Workloads
 1. Docker Containers (Recommended): run workloads as isolated snapshots of your code
 2. Command-line: run the scripts directly from the console
+
+The following Variables should be set to run any of the workloads:
+| **Parameter** | **Description** |
+|:-----------|:-----|
+|Tracking URI|URI for the MLFlow tracking server ex: http://localhost:7000|
+|Experiment Name|Name of experiment you want to run your workload under|
+|Run Name|Name of the current MLFlow run|
+|Model Name|One of the specified model names in models.py (nb, svc, rf, lr)|
+|Tokenizer Name| One of the specified tokenizers (count or tfidf) in models.py|
 
 ### 01 - Getting Started - Running with Docker
 1. **Clone the Repository**
@@ -69,7 +95,7 @@ There are three primary workloads we can execute:
 ##### Finding the best Model Parameters
 1. Run parameter tuning directly:
 ```sh
-python3 ./steps/tune.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$MLFLOW_EXPERIMENT_NAME --run_name=$MLFLOW_RUN_NAME
+python3 ./steps/tune.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$MLFLOW_EXPERIMENT_NAME --run_name=$MLFLOW_RUN_NAME --model_name=$MODEL_NAME --tokenizer_name=$TOKENIZER_NAME
 ```
 2. Navigate to MLFlow Server Check and Compare MLFlow runs through the Tracking UI
 
@@ -77,7 +103,7 @@ python3 ./steps/tune.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$M
 1. Set model, tokenizer, and data parameters for running the training job in the conf.ini file.
 2. Run the training script.
    ```sh
-   python ./steps/train.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$MLFLOW_EXPERIMENT_NAME --run_name=$MLFLOW_RUN_NAME
+   python ./steps/train.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$MLFLOW_EXPERIMENT_NAME --run_name=$MLFLOW_RUN_NAME --model_name=$MODEL_NAME --tokenizer_name=$TOKENIZER_NAME
    ```
 3. Navigate to the MLFlow Tracking UI to visualize results
 
@@ -116,4 +142,6 @@ Here is a quick breakdown of the code structure
 * steps: the required modules that execute our machine learning workflows
 * tests: functional testing
 * app.py: model server file
+* models.py: set of models to select for training or tuning
+* params.py: set of parameters for training or tuning
 

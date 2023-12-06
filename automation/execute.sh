@@ -12,7 +12,7 @@ if [ "$1" == "train" ]; then
     docker build -t $TRAIN_IMAGE_TAG -f ./dockerfiles/train/Dockerfile .
     # Run model training inside the container
     echo "Running model training inside the container..."
-    docker run -e TRACKING_URI=$MLFLOW_TRACKING_URI -e EXPERIMENT_NAME=$MLFLOW_EXPERIMENT_NAME -e RUN_NAME=$MLFLOW_RUN_NAME $TRAIN_IMAGE_TAG
+    docker run -e TRACKING_URI=$MLFLOW_TRACKING_URI -e EXPERIMENT_NAME=$MLFLOW_EXPERIMENT_NAME -e RUN_NAME=$MLFLOW_RUN_NAME -e MODEL_NAME=$MODEL_NAME -e TOKENIZER_NAME=$TOKENIZER_NAME $TRAIN_IMAGE_TAG
 
 elif [ "$1" == "tune" ]; then
     # Build the tune image
@@ -20,7 +20,7 @@ elif [ "$1" == "tune" ]; then
     docker build -t $TUNE_IMAGE_TAG -f ./dockerfiles/tune/Dockerfile .
     # Run model tuning inside the container
     echo "Running model tuning inside the container..."
-    docker run -e TRACKING_URI=$MLFLOW_TRACKING_URI -e EXPERIMENT_NAME=$MLFLOW_EXPERIMENT_NAME -e RUN_NAME=$MLFLOW_RUN_NAME $TUNE_IMAGE_TAG
+    docker run -e TRACKING_URI=$MLFLOW_TRACKING_URI -e EXPERIMENT_NAME=$MLFLOW_EXPERIMENT_NAME -e RUN_NAME=$MLFLOW_RUN_NAME -e MODEL_NAME=$MODEL_NAME -e TOKENIZER_NAME=$TOKENIZER_NAME $TUNE_IMAGE_TAG 
 
 elif [ "$1" == "deploy" ]; then
     # Build the predict image

@@ -16,6 +16,8 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
+from params import get_model_params_tune, get_tokenizer_params_tune
+from models import get_model, get_tokenizer
 from exceptions.runs_errors import ParallelRunsError, RunExperimentError
 from logger.get_logger import setup_logging
 # Setup logging
@@ -26,14 +28,16 @@ logger = logging.getLogger(__name__)
 def run_tuning(tracking_uri: str,
                experiment_name: str,
                run_name: str = None,
+               model_name: str = 'nb',
+               tokenizer_name: str = 'count',
                model_params: dict = None,
                tokenizer_params: dict = None,
-               data_params: dict = None,
-               df: pd.DataFrame = None
+               df_train: pd.DataFrame = None,
+               df_test: pd.DataFrame = None,
+               logger: logging.Logger = None
     ):
-
     """
-    Runs trainig as MLFlow experiment
+    Runs a model tuning experiment as an MLFlow experiment
 
     Args:
         tracking_uri (str): URI of MLFlow tracking server
@@ -48,43 +52,32 @@ def run_tuning(tracking_uri: str,
         results (dict): dictionary of results
     """
     try:
-        mlflow.set_tracking_uri(tracking_uri)
-        mlflow.set_experiment(experiment_name)
-        # Split dataset
-        x_train, x_test, y_train, y_test = train_test_split(
-            df['text'].tolist(), 
-            df['label'].tolist(), 
-            test_size=data_params['test_size'], 
-            random_state=data_params['random_state']
-        )
+        logger.info(f'Loading {model_name} model instance...')
+        model = get_model(model_name=model_name, params=model_params)
+        logger.info(f'Loading {tokenizer_name} tokenizer instance...')
+        tokenizer = get_tokenizer(tokenizer_name=tokenizer_name, params=tokenizer_params)
         # Generate current timestamp
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         # Start MLFlow run
-        with mlflow.start_run(nested=True, run_name=f'{run_name}:{timestamp}') as run:
+        mlflow.set_tracking_uri(tracking_uri)
+        mlflow.set_experiment(experiment_name)
+        with mlflow.start_run(nested=True, run_name=f'{run_name}-{model_name}:{timestamp}', description='Parallel parameter tuning jobs') as run:
             # Vectorize text
-            cv = CountVectorizer(
-                max_features=tokenizer_params['max_features'], 
-                ngram_range=tokenizer_params['ngram_range'], 
-                max_df=tokenizer_params['max_df'],
-                min_df=tokenizer_params['min_df'],
-            )
-            X = cv.fit_transform(x_train)
+            logger.info(f'Fitting training data on {tokenizer_name} tokenizer...')
+            X = tokenizer.fit_transform(df_train['text'])
             # Initialize and fit model
-            model = MultinomialNB(alpha=model_params['alpha'], fit_prior=model_params['fit_prior'])
-            model.fit(X.toarray(), y_train)
-            # Generate predicitons on test set
-            predictions = model.predict(cv.transform(x_test).toarray())
+            logger.info(f'Fitting training data on {model_name} model...')
+            model.fit(X.toarray(), df_train['label'])
+            # Generate predictions on test set
+            logger.info('Generating predictions on test set...')
+            predictions = model.predict(tokenizer.transform(df_test['text']).toarray())
             # Get test metrics
-            accuracy = accuracy_score(y_test, predictions)
-            precision = precision_score(y_test, predictions, average='weighted')
-            recall = recall_score(y_test, predictions, average='weighted')
-            f1 = f1_score(y_test, predictions, average='weighted')
-            metrics = {
-                "accuracy": accuracy,
-                "precision": precision,
-                "recall": recall,
-                "f1": f1,
-            }
+            logger.info('Evaluating model...')
+            accuracy = accuracy_score(df_test['label'], predictions)
+            precision = precision_score(df_test['label'], predictions, average='weighted')
+            recall = recall_score(df_test['label'], predictions, average='weighted')
+            f1 = f1_score(df_test['label'], predictions, average='weighted')
+            logger.info('Logging metrics, model, and tokenizer artifacts...')
             # Log hyperparameters
             mlflow.log_params(model_params)
             # Log metrics
@@ -96,53 +89,19 @@ def run_tuning(tracking_uri: str,
             })
             # Log model and tokenizer artifacts
             mlflow.sklearn.log_model(
-                cv,
+                tokenizer,
                 "tokenizer"
             )
             mlflow.sklearn.log_model(
                 model, 
                 "student-model"
             )
-            
-        return {"accuracy": accuracy, "model": model, "tokenizer": cv, "model_params": model_params, "tokenizer_params": tokenizer_params, "run_id": run.info.run_id}
+            logger.info(f'Successfully completed a run with accuracy: {accuracy}')
+
+        return {"accuracy": accuracy, "model": model, "tokenizer": tokenizer, "model_params": model_params, "tokenizer_params": tokenizer_params, "run_id": run.info.run_id}
     
     except RunExperimentError as e:
         logger.error(f"Error in run_experiment: {e}")
-
-
-def get_tune_params(size: int = 1):
-    """
-    Generates random parameters depeneding on the number of workers
-
-    Args:
-        size (int): number of workers (CPU cores available to process)
-
-    Returns:
-        params_list (dict): dictionary of model, tokenizer, and data parameters
-    """
-    model_params_lst = []
-    tokenizer_params_lst = []
-    data_params_lst = []
-    for _ in range(size):
-        model_params ={
-            "alpha": round(random.uniform(0.1, 1 ), 2),
-            "fit_prior": random.choice([True, False])
-        }
-        tokenizer_params = {
-            "max_features": 1000,
-            "max_df": round(random.uniform(0.7, 0.9 ), 2),
-            "ngram_range": (random.randrange(0, 2), random.randrange(3, 5)),
-            "min_df": round(random.uniform(0.01, 0.1 ), 2)
-        }
-        data_params = {
-            "test_size": round(random.uniform(0.05, 0.2 ), 2),
-            "random_state": random.randrange(0, 100, 2),
-        }
-        model_params_lst.append(model_params)
-        tokenizer_params_lst.append(tokenizer_params)
-        data_params_lst.append(data_params)
-        
-    return {"model_params": model_params_lst, "tokenizer_params": tokenizer_params_lst, "data_params": data_params_lst}
 
 
 def get_args():
@@ -154,6 +113,8 @@ def get_args():
     parser.add_argument('--tracking_uri', type=str)
     parser.add_argument('--experiment_name', type=str)
     parser.add_argument('--run_name', type=str)
+    parser.add_argument('--model_name', type=str, default='nb')
+    parser.add_argument('--tokenizer_name', type=str, default='count')
 
     args = parser.parse_args()
     
@@ -163,22 +124,32 @@ def get_args():
 if __name__ == "__main__":
     import sys
     import os
+    import configparser
     import warnings
     warnings.filterwarnings("ignore")
     from concurrent.futures import ProcessPoolExecutor
     from preprocess import preprocess_data
+    from split import split_dataset
     # Get command-line arguments
     args = get_args()
+    config = configparser.ConfigParser()
+    config.read('conf.ini')
     # Load dataset
     logger.info('Loading dataset...')
     df = pd.read_csv('./data/feedback.csv')
     # Preprocess dataset
     logger.info('Preprocessing dataset...')
     df = preprocess_data(df)
+    # Splitting dataset into train and test sets
+    df_train, df_test = split_dataset(df=df,
+                                      test_size=config.getfloat('dataset', 'test_size'),
+                                      random_state=config.getint('dataset', 'random_state')
+    )
     # Define model and data parameters
-    NUM_WORKERS = os.cpu_count() 
+    NUM_WORKERS = os.cpu_count() - 4
     logger.info(f'Running {NUM_WORKERS} parallel runs')
-    params = get_tune_params(NUM_WORKERS)
+    model_params = get_model_params_tune(NUM_WORKERS, args.model_name)
+    tokenizer_params = get_tokenizer_params_tune(NUM_WORKERS)
     try:
         mlflow.set_tracking_uri(args.tracking_uri)
         mlflow.set_experiment(args.experiment_name)
@@ -192,10 +163,13 @@ if __name__ == "__main__":
                         args.tracking_uri,
                         args.experiment_name,
                         args.run_name,
-                        params['model_params'][i],
-                        params['tokenizer_params'][i],
-                        params['data_params'][i],
-                        df
+                        args.model_name,
+                        args.tokenizer_name,
+                        model_params[i],
+                        tokenizer_params[i],
+                        df_train,
+                        df_test,
+                        logger
                     ))
                 results = []
                 for future in futures:
@@ -207,7 +181,6 @@ if __name__ == "__main__":
             mlflow.set_tracking_uri(args.tracking_uri)
             mlflow.set_experiment(args.experiment_name)
             mlflow.log_params(best_run['model_params'])
-            mlflow.log_params(best_run['tokenizer_params'])
             mlflow.sklearn.log_model(best_run['model'], "best-model")
             mlflow.sklearn.log_model(best_run['tokenizer'], "best-tokenizer")
             logger.info(f'Successfully logged best model and tokenizer artifacts with run_id: {best_run["run_id"]}')

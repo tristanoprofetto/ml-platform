@@ -9,11 +9,13 @@ COPY ./steps/preprocess.py ./
 COPY ./logger ./logger
 COPY ./exceptions ./exceptions
 COPY ./conf.ini ./
+COPY ./models ./models
+COPY ./params ./params
 
 # Install any needed packages specified in requirements.txt
 RUN pip install -r requirements.txt
 
 # Run train.py when the container launches
-CMD ["python3", "train.py", "--tracking_uri", "$TRACKING_URI", "--experiment_name", "$EXPERIMENT_NAME", "--run_name", "$RUN_NAME"]
+CMD ["python3", "train.py", "--tracking_uri", "$TRACKING_URI", "--experiment_name", "$EXPERIMENT_NAME", "--run_name", "$RUN_NAME", "--model_name", "$MODEL_NAME", "--tokenizer_name", "$TOKENIZER_NAME"]
 
 

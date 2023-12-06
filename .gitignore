@@ -40,3 +40,6 @@ settings_local.py
 # Local mlflow files
 mlartifacts/
 mlruns/
+
+# Data models
+data_models/

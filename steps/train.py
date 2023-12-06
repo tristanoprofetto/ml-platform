@@ -17,6 +17,8 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
+from params import get_train_params
+from models import get_model, get_tokenizer
 from exceptions.runs_errors import RunExperimentError
 from logger.get_logger import setup_logging
 # Setup logging
@@ -27,10 +29,12 @@ logger = logging.getLogger(__name__)
 def run_training(tracking_uri: str,
                  experiment_name: str,
                  run_name: str = None,
-                 model_params: dict = None,
-                 tokenizer_params: dict = None, 
-                 data_params: dict = None, 
-                 df: pd.DataFrame = None
+                 model_name: str = 'nb',
+                 tokenizer_name: str = 'count',
+                 params: dict = None,
+                 df_train: pd.DataFrame = None,
+                 df_test: pd.DataFrame = None,
+                 logger: logging.Logger = None
     ):
     """
     Runs model training as an MLFlow experiment
@@ -38,104 +42,67 @@ def run_training(tracking_uri: str,
     Args:
         tracking_uri (str): URI of MLFlow tracking server
         experiment_name (str): Name of experiment
-        run_name (str): Name of run
-        model_params (dict): Dictionary of model parameters
-        tokenizer_params (dict): Dictionary of tokenizer parameters
-        data_params (dict): Dictionary of data parameters
-        df (pd.DataFrame): Dataframe containing text and label columns
+        run_name (str): Name of the current run
+        params (dict): Dictionary of model and tokenizer parameters
+        df_train (pd.DataFrame): train dataset containing text and label columns
+        df_test (pd.DataFrame): test dataset containing text and label columns
+        logger (logging.Logger): logger instance
     
     Returns:
         results (dict): dictionary of training results
     """
     try:
+        # Load model and tokenizer instances
+        logger.info(f'Loading {model_name} model instance..')
+        model = get_model(model_name=model_name, params=params['model_params'])
+        logger.info(f'Loading {tokenizer_name} tokenizer instance..')
+        tokenizer = get_tokenizer(tokenizer_name=tokenizer_name, params=params['tokenizer_params'])
+        # Set MLFlow tracking URI and experiment name
         mlflow.set_tracking_uri(tracking_uri)
         mlflow.set_experiment(experiment_name)
-        # Split dataset
-        x_train, x_test, y_train, y_test = train_test_split(
-            df['text'].tolist(), 
-            df['label'].tolist(), 
-            test_size=data_params['test_size'], 
-            random_state=data_params['random_state']
-        )
-        # Vectorize text
-        cv = CountVectorizer(
-            max_features=tokenizer_params['max_features'], 
-            ngram_range=tokenizer_params['ngram_range'], 
-            max_df=tokenizer_params['max_df'],
-            min_df=tokenizer_params['min_df'],
-        )
-        X = cv.fit_transform(x_train)
-        # Initialize and fit model
-        model = MultinomialNB(alpha=model_params['alpha'], fit_prior=model_params['fit_prior'])
-        model.fit(X.toarray(), y_train)
-        # Generate predicitons on test set
-        predictions = model.predict(cv.transform(x_test).toarray())
-        # Evaluate model
-        accuracy = accuracy_score(y_test, predictions)
-        precision = precision_score(y_test, predictions, average='weighted')
-        recall = recall_score(y_test, predictions, average='weighted')
-        f1 = f1_score(y_test, predictions, average='weighted')
-        # Initialize mlflow dataset
-        train = pd.concat([pd.DataFrame({'text': x_train}), pd.DataFrame({'label': y_train})], axis=1)
-        test = pd.concat([pd.DataFrame({'text': x_test}), pd.DataFrame({'label': y_test})], axis=1)
-        test['predictions'] = predictions
-        train_set = mlflow.data.from_pandas(train)
-        test_set = mlflow.data.from_pandas(test, predictions='predictions', targets='label')
         # Generate current timestamp
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         # Start MLFlow run
-        with mlflow.start_run(run_name=f'{run_name}:{timestamp}') as run:
-            # Log hyperparameters
+        with mlflow.start_run(run_name=f'{run_name}-{model_name}:{timestamp}') as run:
+            # Fit tokenizer on training data
+            logger.info(f'Fitting {tokenizer_name} tokenizer on training data...')
+            X = tokenizer.fit_transform(df_train['text'])
+            # Initialize and fit model
+            logger.info(f'Fitting {model_name} model on training data...')
+            model.fit(X.toarray(), df_train['label'])
+            # Generate predicitons on test set
+            predictions = model.predict(tokenizer.transform(df_test['text']).toarray())
+            # Evaluate model
+            logger.info(f'Evaluating {model_name} model...')
+            df_test['predictions'] = predictions
+            mlflow.evaluate(model_type='classifier', data=df_test, predictions='predictions', targets='label')
+            # Initialize mlflow dataset
+            train_set = mlflow.data.from_pandas(df_train)
+            test_set = mlflow.data.from_pandas(df_test)
+            # Log model and tokenizer parameters
+            model_params, tokenizer_params = model.get_params(), tokenizer.get_params()
             mlflow.log_params(model_params)
-            # Log data parameters
-            mlflow.log_params(data_params)
-            # Log metrics
-            mlflow.log_metrics({
-                "accuracy": accuracy,
-                "precision": precision,
-                "recall": recall,
-                "f1": f1,
-            })
+            mlflow.log_params(tokenizer_params)
             # Log datasets
-            mlflow.log_input(train_set, "train")
-            mlflow.log_input(test_set, "test")
+            mlflow.log_input(dataset=train_set, context="train")
+            mlflow.log_input(dataset=test_set, context="test")
             # Log model and vectorizer artifacts
+            logger.info(f'Logging {model_name} model and {tokenizer_name} tokenizer artifacts...')
             mlflow.sklearn.log_model(
-                cv,
+                tokenizer,
                 "tokenizer",
-                registered_model_name="tokenizer",
+                #registered_model_name=tokenizer_name
             )
             mlflow.sklearn.log_model(
                 model, 
                 "student-model",
-                registered_model_name="student-model",
+                #registered_model_name=model_name,
             )
             
-        return {"run_id": run.info.run_id, "model": model, "tokenizer": cv, "model_params": model_params, "tokenizer_params": tokenizer_params, "data_params": data_params}
+        return {"run_id": run.info.run_id, "model": model, "tokenizer": tokenizer, "model_params": params['model_params'], "tokenizer_params": params['tokenizer_params']}
 
     except RunExperimentError as e:
         logger.error(e)
-
-
-def get_train_params(config: configparser.ConfigParser):
-    """
-    Get model, tokenizer, and data parameters from config file
-    """
-    model_params = {
-        "alpha": config.getfloat("model", "alpha"),
-        "fit_prior": config.getboolean("model", "fit_prior")
-    }
-    tokenizer_params = {
-        "max_features": config.getint("tokenizer", "max_features"),
-        "ngram_range": ast.literal_eval(config.get("tokenizer", "ngram_range")),
-        "max_df": config.getfloat("tokenizer", "max_df"),
-        "min_df": config.getfloat("tokenizer", "min_df"),
-    }
-    data_params = {
-        "test_size": config.getfloat("dataset", "test_size"),
-        "random_state": config.getint("dataset", "random_state"),
-    }
-    return { "model_params": model_params, "tokenizer_params": tokenizer_params, "data_params": data_params}
 
 
 def get_args():
@@ -145,9 +112,11 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--tracking_uri', type=str, default='http://localhost:5000')
-    parser.add_argument('--experiment_name', type=str, default='test-experiment')
+    parser.add_argument('--experiment_name', type=str, default='dev-experiment-')
     parser.add_argument('--run_name', type=str, default='test-run')
     parser.add_argument('--input_data_path', type=str, default='./data/feedback.csv')
+    parser.add_argument('--model_name', type=str, default='nb')
+    parser.add_argument('--tokenizer_name', type=str, default='count')
 
     args = parser.parse_args()
     
@@ -160,28 +129,37 @@ if __name__ == "__main__":
     import warnings
     warnings.filterwarnings("ignore")
     from preprocess import preprocess_data
-    # Get command-line arguments
+    from split import split_dataset
+    # Get command-line arguments and read config file
     args = get_args()
+    config = configparser.ConfigParser()
+    config.read('conf.ini')
     # Load dataset
     logger.info('Loading dataset...')
     df = pd.read_csv(args.input_data_path)
     # Preprocess dataset
     logger.info('Preprocessing dataset...')
     df = preprocess_data(df)
-    # Get model, tokenizer, and data parameters from config file
-    config = configparser.ConfigParser()
-    config.read('conf.ini')
-    params = get_train_params(config)
+    # Split data into train and test sets
+    logger.info('Splitting dataset into train and test sets...')
+    df_train, df_test = split_dataset(df=df, 
+                                      test_size=config.getfloat('dataset', 'test_size'), 
+                                      random_state=config.getint('dataset', 'random_state')
+                                      )
+    # Load data, model, and tokenizer parameters for training job
+    params = get_train_params(args.model_name, config)
     # Run MLFlow experiment
     logger.info('Starting model training with MLflow...')
     result = run_training(
-        args.tracking_uri,
-        args.experiment_name,
-        args.run_name,
-        params['model_params'],
-        params['tokenizer_params'],
-        params['data_params'],
-        df
+        tracking_uri=args.tracking_uri,
+        experiment_name=args.experiment_name,
+        run_name=args.run_name,
+        model_name=args.model_name,
+        tokenizer_name=args.tokenizer_name,
+        params=params,
+        df_train=df_train,
+        df_test=df_test,
+        logger=logger
     )
     logger.info(f'Successfully ran mlflow training experiment with run_id: {result["run_id"]}')
 
