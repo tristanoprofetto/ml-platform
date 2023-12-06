@@ -8,9 +8,6 @@ import mlflow
 import pandas as pd
 import numpy as np
 
-from sklearn.naive_bayes import MultinomialNB 
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 # Set path to parent directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -43,10 +40,13 @@ def run_tuning(tracking_uri: str,
         tracking_uri (str): URI of MLFlow tracking server
         experiment_name (str): Name of experiment
         run_name (str): Name of current mlflow run
+        model_name (str): Name of the model to select and train
+        tokenizer_name (str): Name of the vectorizer to select and train
         model_params (dict): Dictionary of model parameters
         tokenizer_params (dict): Dictionary of tokenizer parameters
-        data_params (dict): Dictionary of data parameters
-        df (pd.DataFrame): Dataframe containing text and label columns
+        df_train (pd.DataFrame): training set containing text and label columns
+        df_test (pd.DataFrame): testing set containing text and label columns
+        logger (logging.Logger): logger instance
     
     Returns:
         results (dict): dictionary of results
