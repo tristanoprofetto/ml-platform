@@ -112,9 +112,9 @@ def get_args():
     parser.add_argument('--tracking_uri', type=str, default='http://localhost:5000')
     parser.add_argument('--experiment_name', type=str, default='dev-experiment-')
     parser.add_argument('--run_name', type=str, default='test-run')
-    parser.add_argument('--input_data_path', type=str, default='./data/feedback.csv')
     parser.add_argument('--model_name', type=str, default='nb')
     parser.add_argument('--tokenizer_name', type=str, default='count')
+    parser.add_argument('--input_data_path', type=str, default='./data/feedback.csv')
 
     args = parser.parse_args()
     
@@ -144,21 +144,26 @@ if __name__ == "__main__":
                                       test_size=config.getfloat('dataset', 'test_size'), 
                                       random_state=config.getint('dataset', 'random_state')
                                       )
-    # Load data, model, and tokenizer parameters for training job
-    params = get_train_params(args.model_name, config)
+    # Load data, model, and tokenizer env vars for training job
+    env_vars = [os.environ.get('MODEL_NAME'), os.environ.get('TOKENIZER_NAME')]
+    if env_vars:
+        model_name = env_vars[0]
+        tokenizer_name = env_vars[1]
+    else:
+        model_name = args.model_name
+        tokenizer_name = args.tokenizer_name
+    params = get_train_params(model_name, config)
     # Run MLFlow experiment
     logger.info('Starting model training with MLflow...')
     result = run_training(
         tracking_uri=args.tracking_uri,
         experiment_name=args.experiment_name,
         run_name=args.run_name,
-        model_name=args.model_name,
-        tokenizer_name=args.tokenizer_name,
+        model_name=model_name,
+        tokenizer_name=tokenizer_name,
         params=params,
         df_train=df_train,
         df_test=df_test,
         logger=logger
     )
     logger.info(f'Successfully ran mlflow training experiment with run_id: {result["run_id"]}')
-
-

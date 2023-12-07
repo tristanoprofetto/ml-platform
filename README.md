@@ -19,15 +19,9 @@ Be sure to have installed the following on your machine.
 - Docker
 - MLflow
 
-### Run the MLflow Server
-Run the folllowing to command to start the mlflow tracking UI on your local machine:
-```
-mlflow server --host=$MLFLOW_SERVER_HOST --port=$MLFLOW_SERVER_PORT --serve-artifacts
-```
-Be sure to use your IP address as the host server so that your docker containers can communicate with the MLflow tracking server. You can print your local IP with the following command:
-```sh
-ifconfig | grep inet
-```
+Also run:
+```sh pip install requirements.txt```
+
 
 ### ML Workloads
 There are three primary workloads we can execute:
@@ -65,6 +59,18 @@ The following Variables should be set to run any of the workloads:
 |Model Name|One of the specified model names in models.py (nb, svc, rf, lr)|
 |Tokenizer Name| One of the specified tokenizers (count or tfidf) in models.py|
 
+### 00 - Getting Started - Run the MLflow Server
+In order to run any ml workloads, we need to first have an mlflow server running where can can access  and visualize our experiments, runs, artifacts, metrics, and more.
+Run the folllowing to command to start the mlflow tracking UI on your local machine:
+```
+mlflow server --host=$MLFLOW_SERVER_HOST --port=$MLFLOW_SERVER_PORT --serve-artifacts
+```
+Be sure to use your IP address as the host server so that your docker containers can communicate with the MLflow tracking server. You can print your local IP with the following command:
+```sh
+ifconfig | grep inet
+```
+Navigate to your MLFLOW_SERVER_HOST:PORT to checkout the UI.
+
 ### 01 - Getting Started - Running with Docker
 1. **Clone the Repository**
    ```sh
@@ -95,7 +101,12 @@ The following Variables should be set to run any of the workloads:
 ##### Finding the best Model Parameters
 1. Run parameter tuning directly:
 ```sh
-python3 ./steps/tune.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$MLFLOW_EXPERIMENT_NAME --run_name=$MLFLOW_RUN_NAME --model_name=$MODEL_NAME --tokenizer_name=$TOKENIZER_NAME
+python3 ./steps/tune.py \
+--tracking_uri=$MLFLOW_TRACKING_URI \
+--experiment_name=$MLFLOW_EXPERIMENT_NAME \
+--run_name=$MLFLOW_RUN_NAME \
+--model_name=$MODEL_NAME \
+--tokenizer_name=$TOKENIZER_NAME
 ```
 2. Navigate to MLFlow Server Check and Compare MLFlow runs through the Tracking UI
 
@@ -103,7 +114,12 @@ python3 ./steps/tune.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$M
 1. Set model, tokenizer, and data parameters for running the training job in the conf.ini file.
 2. Run the training script.
    ```sh
-   python ./steps/train.py --tracking_uri=$MLFLOW_TRACKING_URI --experiment_name=$MLFLOW_EXPERIMENT_NAME --run_name=$MLFLOW_RUN_NAME --model_name=$MODEL_NAME --tokenizer_name=$TOKENIZER_NAME
+   python ./steps/train.py \
+   --tracking_uri=$MLFLOW_TRACKING_URI \
+   --experiment_name=$MLFLOW_EXPERIMENT_NAME \
+   --run_name=$MLFLOW_RUN_NAME \
+   --model_name=$MODEL_NAME \
+   --tokenizer_name=$TOKENIZER_NAME
    ```
 3. Navigate to the MLFlow Tracking UI to visualize results
 

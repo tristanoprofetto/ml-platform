@@ -4,15 +4,28 @@
 # Import variables
 source ./automation/variables.sh
 
+
+
 # Start the MLflow server
 #mlflow server --host $MLFLOW_SERVER_HOST --port $MLFLOW_SERVER_PORT --serve-artifacts
 if [ "$1" == "train" ]; then
+    # start the mlflow server
+    #mlflow server --host=10.0.0.117 --port=8080 --serve-artifacts
     # Build the train image
     echo "Building the train image..."
-    docker build -t $TRAIN_IMAGE_TAG -f ./dockerfiles/train/Dockerfile .
+    echo $MODEL_NAME
+    docker build -t $TRAIN_IMAGE_TAG \
+        --build-arg MODEL_NAME=$MODEL_NAME \
+        --build-arg TOKENIZER_NAME=$TOKENIZER_NAME \
+        -f ./dockerfiles/train/Dockerfile .
     # Run model training inside the container
     echo "Running model training inside the container..."
-    docker run -e TRACKING_URI=$MLFLOW_TRACKING_URI -e EXPERIMENT_NAME=$MLFLOW_EXPERIMENT_NAME -e RUN_NAME=$MLFLOW_RUN_NAME -e MODEL_NAME=$MODEL_NAME -e TOKENIZER_NAME=$TOKENIZER_NAME $TRAIN_IMAGE_TAG
+    docker run \
+        -v $(pwd)/data/feedback.csv:/data/feedback.csv \
+        -e TRACKING_URI=$MLFLOW_TRACKING_URI \
+        -e EXPERIMENT_NAME=$MLFLOW_EXPERIMENT_NAME \
+        -e RUN_NAME=$MLFLOW_RUN_NAME \
+        $TRAIN_IMAGE_TAG
 
 elif [ "$1" == "tune" ]; then
     # Build the tune image
@@ -20,7 +33,14 @@ elif [ "$1" == "tune" ]; then
     docker build -t $TUNE_IMAGE_TAG -f ./dockerfiles/tune/Dockerfile .
     # Run model tuning inside the container
     echo "Running model tuning inside the container..."
-    docker run -e TRACKING_URI=$MLFLOW_TRACKING_URI -e EXPERIMENT_NAME=$MLFLOW_EXPERIMENT_NAME -e RUN_NAME=$MLFLOW_RUN_NAME -e MODEL_NAME=$MODEL_NAME -e TOKENIZER_NAME=$TOKENIZER_NAME $TUNE_IMAGE_TAG 
+    docker run \
+    -v $(pwd)/data/feedback.csv:/data/feedback.csv \
+    -e TRACKING_URI=$MLFLOW_TRACKING_URI \
+    -e EXPERIMENT_NAME=$MLFLOW_EXPERIMENT_NAME \
+    -e RUN_NAME=$MLFLOW_RUN_NAME \
+    -e MODEL_NAME=$MODEL_NAME \
+    -e TOKENIZER_NAME=$TOKENIZER_NAME \
+    $TUNE_IMAGE_TAG 
 
 elif [ "$1" == "deploy" ]; then
     # Build the predict image
