@@ -43,3 +43,6 @@ mlruns/
 
 # Data models
 data_models/
+
+# creds fle
+creds.json

@@ -146,7 +146,7 @@ if __name__ == "__main__":
                                       )
     # Load data, model, and tokenizer env vars for training job
     env_vars = [os.environ.get('MODEL_NAME'), os.environ.get('TOKENIZER_NAME')]
-    if env_vars:
+    if None not in env_vars:
         model_name = env_vars[0]
         tokenizer_name = env_vars[1]
     else:

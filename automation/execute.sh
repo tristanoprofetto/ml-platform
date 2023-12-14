@@ -4,13 +4,7 @@
 # Import variables
 source ./automation/variables.sh
 
-
-
-# Start the MLflow server
-#mlflow server --host $MLFLOW_SERVER_HOST --port $MLFLOW_SERVER_PORT --serve-artifacts
 if [ "$1" == "train" ]; then
-    # start the mlflow server
-    #mlflow server --host=10.0.0.117 --port=8080 --serve-artifacts
     # Build the train image
     echo "Building the train image..."
     echo $MODEL_NAME
